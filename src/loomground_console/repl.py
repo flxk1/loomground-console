@@ -39,8 +39,9 @@ def render_turn(result: dict) -> str:
     """Format one governance_chat result for the terminal."""
     out: list[str] = []
     echo = result.get("echo")
+    why = result.get("why")                        # the router's reasoning, if given
     if echo:
-        out.append(f"  · {echo}")                 # inferred/chosen intent (correctable)
+        out.append(f"  · {echo}" + (f"  ({why})" if why else ""))  # correctable route
     inner = result.get("result")
     if isinstance(inner, dict):
         if inner.get("error"):

@@ -20,10 +20,13 @@ def test_parse_command_normal_vs_slash():
 
 # --- render_turn -----------------------------------------------------------
 
-def test_render_turn_echoes_intent_and_audit():
+def test_render_turn_echoes_intent_why_and_audit():
+    # shape taken from a live governance_chat response
     out = repl.render_turn({"intent": "ask", "echo": "inferred: ask",
-                            "kind": "ask", "result": {"answer": "42", "audit_id": "a1"}})
+                            "why": "question-shaped", "kind": "ask",
+                            "result": {"answer": "42", "audit_id": "a1"}})
     assert "inferred: ask" in out
+    assert "question-shaped" in out
     assert "42" in out
     assert "audit: a1" in out
 
