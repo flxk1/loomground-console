@@ -90,12 +90,25 @@ class RvndClient:
         if self._stack is not None:
             await self._stack.aclose()
 
-    async def call(self, op: str, params: Optional[dict] = None) -> dict:
+    async def op(self, tool: str, op: str, params: Optional[dict] = None) -> dict:
+        """Call any RVND facade tool: tool(op=…, params=…)."""
         res = await self._session.call_tool(
-            "workspace_workflow", {"op": op, "params": params or {}})
+            tool, {"op": op, "params": params or {}})
         return unwrap_tool_result(res)
 
     async def governance_chat(self, text: str, folder_context: str = "") -> dict:
         """One deterministic governed turn: intent router → dispatch → result."""
-        return await self.call(
-            "governance_chat", {"text": text, "folder_context": folder_context})
+        return await self.op(
+            "workspace_workflow", "governance_chat",
+            {"text": text, "folder_context": folder_context})
+
+    async def security_dashboard(self, folder_context: str,
+                                 group_by: str = "verdict") -> dict:
+        """Read-only projection of the folder's signed chain (admitted/held/…)."""
+        return await self.op(
+            "workspace_workflow", "security_dashboard",
+            {"folder_context": folder_context, "group_by": group_by})
+
+    async def list_workspaces(self) -> dict:
+        """{ok, default, workspaces:[{path,label,added_at,exists}, ...]}."""
+        return await self.op("workspace_workspace", "list", {})

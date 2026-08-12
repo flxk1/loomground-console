@@ -29,7 +29,8 @@ _ART = (
 # RVND over MCP so this never drifts from the server's real command set.
 _COMMANDS = (
     ("chat",    "deterministic governance chat, grounded in your versum (no LLM)"),
-    ("board",   "ASCII dashboard — oversight lanes, breaker state, audit tail"),
+    ("board",   "ASCII dashboard — workspaces + the security board"),
+    ("workspaces", "list the workspaces RVND knows (pick one in chat with /workspaces)"),
     ("connect", "connect an LLM provider (API key / OAuth) to enable LLM-assisted chat"),
     ("setup",   "run RVND's guided first-run wizard (workspaces init)"),
     ("console", "open the browser console (RVND app → http://127.0.0.1:8799)"),
@@ -81,7 +82,8 @@ def cmd_chat(args: argparse.Namespace) -> int:
         try:
             async with RvndClient(command) as rvnd:
                 return await _repl.run(rvnd.governance_chat, folder=folder,
-                                       phrase=phrase, llm_on=llm_on)
+                                       phrase=phrase, llm_on=llm_on,
+                                       list_ws=rvnd.list_workspaces)
         except RuntimeError as e:            # missing 'mcp' dep
             print(f"  {e}")
             return 1
@@ -136,6 +138,55 @@ def cmd_connect(args: argparse.Namespace) -> int:
     return 0 if ok else 1
 
 
+def _run_with_rvnd(rvnd_dir, go) -> int:
+    """Shared boilerplate: open an MCP session to RVND and run `go(rvnd)`."""
+    import asyncio
+    from .rvnd_client import RvndClient, resolve_rvnd_command
+    command = resolve_rvnd_command(rvnd_dir)
+
+    async def _m() -> int:
+        try:
+            async with RvndClient(command) as rvnd:
+                return await go(rvnd)
+        except RuntimeError as e:               # missing 'mcp'
+            print(f"  {e}")
+            return 1
+        except Exception as e:                  # noqa: BLE001 - server unreachable
+            print(f"  could not reach RVND ({e}).")
+            print(f"  tried: {' '.join(command)}  →  --rvnd-dir <dir> or RVND_DIR=<dir>")
+            return 1
+
+    return asyncio.run(_m())
+
+
+def cmd_workspaces(args: argparse.Namespace) -> int:
+    from . import board as _board
+
+    async def go(rvnd) -> int:
+        print(_board.render_workspaces(await rvnd.list_workspaces()))
+        return 0
+
+    return _run_with_rvnd(getattr(args, "rvnd_dir", None), go)
+
+
+def cmd_board(args: argparse.Namespace) -> int:
+    from . import board as _board
+    folder_arg = getattr(args, "folder", "") or ""
+
+    async def go(rvnd) -> int:
+        ws = await rvnd.list_workspaces()
+        folder = folder_arg or ws.get("default", "")
+        if not folder:
+            print(_board.render_workspaces(ws))
+            print("  no default workspace — pick one with --folder <path>")
+            return 1
+        sd = await rvnd.security_dashboard(folder)
+        print(_board.render(ws, sd, folder=folder))
+        return 0
+
+    return _run_with_rvnd(getattr(args, "rvnd_dir", None), go)
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(
         prog="loomground-console",
@@ -158,6 +209,13 @@ def main(argv=None) -> int:
     conn.add_argument("--no-validate", action="store_true",
                       help="store without a live provider check")
     conn.set_defaults(func=cmd_connect)
+    wsp = sub.add_parser("workspaces", help="list workspaces RVND knows")
+    wsp.add_argument("--rvnd-dir", default=None, help="RVND install dir")
+    wsp.set_defaults(func=cmd_workspaces)
+    brd = sub.add_parser("board", help="ASCII dashboard — workspaces + security")
+    brd.add_argument("--folder", default="", help="workspace to show (else the default)")
+    brd.add_argument("--rvnd-dir", default=None, help="RVND install dir")
+    brd.set_defaults(func=cmd_board)
 
     args = p.parse_args(argv)
     fn = getattr(args, "func", None)

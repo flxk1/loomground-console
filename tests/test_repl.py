@@ -63,6 +63,25 @@ def test_repl_runs_a_turn_then_quits():
     assert "bye." in blob
 
 
+def test_repl_workspaces_list_and_pick_by_number():
+    lines = iter(["/workspaces", "/folder 2", "hello", "/quit"])
+    printed: list[str] = []
+
+    async def fake_chat(text, folder):
+        printed.append(f"CHAT[{folder}]:{text}")
+        return {"result": {"answer": "ok"}}
+
+    async def fake_list():
+        return {"default": "/w/a", "workspaces": [
+            {"path": "/w/a", "label": "alpha"}, {"path": "/w/b", "label": "beta"}]}
+
+    asyncio.run(repl.run(fake_chat, read_line=lambda p: next(lines),
+                         out=printed.append, list_ws=fake_list))
+    blob = "\n".join(printed)
+    assert "/w/b" in blob                      # listed
+    assert "CHAT[/w/b]:hello" in blob          # /folder 2 switched grounding to beta
+
+
 def test_repl_chat_error_does_not_crash():
     lines = iter(["boom", "/quit"])
     printed: list[str] = []

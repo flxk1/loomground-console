@@ -19,11 +19,12 @@ from typing import Any, Callable, Optional
 # is the dispatched op's own output (ingest / intake / ask …).
 
 SLASH = {
-    "/help":   "show commands",
-    "/folder": "<path>  set the workspace this chat grounds in (its .versum)",
-    "/llm":    "toggle LLM phrasing on/off (needs a connected provider)",
-    "/clear":  "clear the screen",
-    "/quit":   "exit  (also /q, or Ctrl-D)",
+    "/help":       "show commands",
+    "/workspaces": "list workspaces RVND knows (also /ws)",
+    "/folder":     "<number|path>  set the workspace this chat grounds in (its .versum)",
+    "/llm":        "toggle LLM phrasing on/off (needs a connected provider)",
+    "/clear":      "clear the screen",
+    "/quit":       "exit  (also /q, or Ctrl-D)",
 }
 
 
@@ -71,7 +72,8 @@ async def run(chat: Callable[[str, str], "Any"], *,
               read_line: Optional[Callable[[str], str]] = None,
               out=print,
               phrase: Optional[Callable[[str, dict], str]] = None,
-              llm_on: bool = False) -> int:
+              llm_on: bool = False,
+              list_ws: Optional[Callable[[], "Any"]] = None) -> int:
     """Run the REPL. `chat(text, folder)` is an async callable returning the
     governance_chat dict (injected so tests pass a fake). `phrase(question,
     result)` optionally turns RVND's deterministic result into prose (P4, option
@@ -79,6 +81,7 @@ async def run(chat: Callable[[str, str], "Any"], *,
     `read_line(prompt)` defaults to input()."""
     reader = read_line or (lambda prompt: input(prompt))
     loop = asyncio.get_event_loop()
+    last_ws: list[str] = []                    # paths from the last /workspaces list
     mode = ("LLM-assisted" if (llm_on and phrase) else "deterministic")
     out(f"  RVND chat — {mode}, grounded in your versum. /help, /quit.")
     if phrase is None:
@@ -99,8 +102,25 @@ async def run(chat: Callable[[str, str], "Any"], *,
             out(_help_text()); continue
         if cmd == "/clear":
             out("\033[2J\033[H"); continue
+        if cmd in ("/workspaces", "/ws"):
+            if list_ws is None:
+                out("  (workspace list unavailable)"); continue
+            try:
+                data = await list_ws()
+            except Exception as e:                # noqa: BLE001
+                out(f"  ⚠ {e}"); continue
+            rows = data.get("workspaces") or []
+            last_ws[:] = [r.get("path", "") for r in rows]
+            default = data.get("default", "")
+            for i, r in enumerate(rows, 1):
+                mark = "*" if r.get("path") == default else " "
+                out(f"  {i:>2}{mark} {(r.get('label') or ''):<12} {r.get('path', '')}")
+            out("  → /folder <number|path> to switch"); continue
         if cmd == "/folder":
-            folder = rest or folder
+            if rest.isdigit() and 1 <= int(rest) <= len(last_ws):
+                folder = last_ws[int(rest) - 1]   # pick from the last /workspaces list
+            elif rest:
+                folder = rest
             out(f"  workspace: {folder or '(none)'}"); continue
         if cmd == "/llm":
             if phrase is None:
