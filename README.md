@@ -17,10 +17,11 @@ and the browser console already use. Nothing here re-implements the engine.
 - **The browser console** (RVND `app/serve.py`) remains the other face.
 
 ## Status
-- **P1 — home + command overview** ✅ (this scaffold): `loomground-console home`.
-- **P2 — chat REPL** (next): deterministic, versum-grounded, MCP client of RVND.
-- **P3 — `connect`** (BYOK provider credentials, ported from Brain `user_credentials.py`).
-- **P4 — LLM opt-in**; **P5 — versum-locate wizard step**; **P6 — ASCII `board`**.
+- **P1 — home + command overview** ✅ `loomground-console home`.
+- **P2 — chat REPL** ✅ deterministic, versum-grounded, MCP client of RVND (verified live).
+- **P3 — `connect`** ✅ BYOK provider credentials, encrypted local store.
+- **P4 — LLM opt-in** ✅ option A: LLM *phrases* RVND's deterministic result, never routes it. `/llm` toggle.
+- **P5 — versum-locate wizard step** · **P6 — ASCII `board`** (next).
 
 See the program plan in the Loomground `work/` tree.
 

@@ -21,6 +21,7 @@ from typing import Any, Callable, Optional
 SLASH = {
     "/help":   "show commands",
     "/folder": "<path>  set the workspace this chat grounds in (its .versum)",
+    "/llm":    "toggle LLM phrasing on/off (needs a connected provider)",
     "/clear":  "clear the screen",
     "/quit":   "exit  (also /q, or Ctrl-D)",
 }
@@ -68,12 +69,20 @@ def _help_text() -> str:
 async def run(chat: Callable[[str, str], "Any"], *,
               folder: str = "",
               read_line: Optional[Callable[[str], str]] = None,
-              out=print) -> int:
+              out=print,
+              phrase: Optional[Callable[[str, dict], str]] = None,
+              llm_on: bool = False) -> int:
     """Run the REPL. `chat(text, folder)` is an async callable returning the
-    governance_chat dict (injected so tests pass a fake; production passes
-    `RvndClient.governance_chat`). `read_line(prompt)` defaults to input()."""
+    governance_chat dict (injected so tests pass a fake). `phrase(question,
+    result)` optionally turns RVND's deterministic result into prose (P4, option
+    A — never routes governance); `llm_on` is its initial state, toggled by /llm.
+    `read_line(prompt)` defaults to input()."""
     reader = read_line or (lambda prompt: input(prompt))
-    out("  RVND chat — deterministic, grounded in your versum. /help, /quit.")
+    loop = asyncio.get_event_loop()
+    mode = ("LLM-assisted" if (llm_on and phrase) else "deterministic")
+    out(f"  RVND chat — {mode}, grounded in your versum. /help, /quit.")
+    if phrase is None:
+        out("  (no provider connected — `connect` one for optional LLM phrasing)")
     out(f"  workspace: {folder or '(none — set with /folder <path>)'}")
     while True:
         try:
@@ -93,6 +102,13 @@ async def run(chat: Callable[[str, str], "Any"], *,
         if cmd == "/folder":
             folder = rest or folder
             out(f"  workspace: {folder or '(none)'}"); continue
+        if cmd == "/llm":
+            if phrase is None:
+                out("  no provider connected — run `loomground-console connect` first")
+            else:
+                llm_on = not llm_on
+                out(f"  LLM phrasing: {'on' if llm_on else 'off'}")
+            continue
         if cmd:                       # unknown slash
             out(f"  unknown command {cmd!r} — /help"); continue
         if not rest:
@@ -101,7 +117,19 @@ async def run(chat: Callable[[str, str], "Any"], *,
             result = await chat(rest, folder)
         except Exception as e:        # noqa: BLE001 - surface, don't crash the REPL
             out(f"  ⚠ {e}"); continue
-        out(render_turn(result))
+
+        if llm_on and phrase is not None:
+            # Phrase RVND's DETERMINISTIC result. On any provider error, fall
+            # back to the deterministic rendering — the engine's word stands.
+            try:
+                prose = await loop.run_in_executor(None, phrase, rest, result)
+                out("  " + prose.replace("\n", "\n  "))
+                out(render_turn(result))           # keep the authoritative core visible
+            except Exception as e:                 # noqa: BLE001
+                out(render_turn(result))
+                out(f"  (LLM phrasing unavailable: {e})")
+        else:
+            out(render_turn(result))
 
 
 def _short(folder: str) -> str:

@@ -65,14 +65,23 @@ def cmd_chat(args: argparse.Namespace) -> int:
     from . import repl as _repl
     from .rvnd_client import RvndClient, resolve_rvnd_command
 
+    from . import llm as _llm
+
     banner()
     command = resolve_rvnd_command(getattr(args, "rvnd_dir", None))
     folder = getattr(args, "folder", "") or ""
+    # LLM phrasing (P4, option A) — only if a provider is connected. It never
+    # routes governance; it phrases RVND's deterministic result. Available for
+    # the /llm toggle whenever connected; --no-llm just starts it off.
+    provider = _llm.available()
+    phrase = (lambda q, r: _llm.phrase(q, r, provider=provider)) if provider else None
+    llm_on = bool(provider) and not getattr(args, "no_llm", False)
 
     async def _main() -> int:
         try:
             async with RvndClient(command) as rvnd:
-                return await _repl.run(rvnd.governance_chat, folder=folder)
+                return await _repl.run(rvnd.governance_chat, folder=folder,
+                                       phrase=phrase, llm_on=llm_on)
         except RuntimeError as e:            # missing 'mcp' dep
             print(f"  {e}")
             return 1
@@ -139,6 +148,8 @@ def main(argv=None) -> int:
     chat.add_argument("--folder", default="", help="workspace to ground in (its .versum)")
     chat.add_argument("--rvnd-dir", default=None,
                       help="RVND install dir (else $RVND_DIR, workspaces-mcp, ~/rvnd)")
+    chat.add_argument("--no-llm", action="store_true",
+                      help="start with LLM phrasing off (toggle in-session with /llm)")
     chat.set_defaults(func=cmd_chat)
     conn = sub.add_parser("connect", help="connect an LLM provider (BYOK API key)")
     conn.add_argument("--provider", help="anthropic | openai | ollama")
