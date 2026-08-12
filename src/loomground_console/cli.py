@@ -86,6 +86,47 @@ def cmd_chat(args: argparse.Namespace) -> int:
     return asyncio.run(_main())
 
 
+def cmd_connect(args: argparse.Namespace) -> int:
+    import getpass
+    from . import creds
+
+    if args.list:
+        conn = creds.list_connected()
+        print("  connected providers: " + (", ".join(conn) if conn else "(none)"))
+        return 0
+    if args.remove:
+        ok = creds.disconnect(args.remove)
+        print(f"  {'removed' if ok else 'not connected'}: {args.remove}")
+        return 0 if ok else 1
+
+    banner()
+    known = ", ".join(creds.PROVIDERS)
+    provider = (args.provider
+                or input(f"  provider [{known}] (default anthropic): ").strip()
+                or "anthropic").lower()
+    if provider not in creds.PROVIDERS:
+        print(f"  unknown provider {provider!r} — known: {known}")
+        return 2
+    cfg = creds.PROVIDERS[provider]
+    api_key = ""
+    if not cfg.get("no_auth"):
+        try:                       # the USER types the key; it is never echoed
+            api_key = getpass.getpass(f"  {cfg['name']} API key (hidden): ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("\n  cancelled.")
+            return 1
+    mode = "format" if args.no_validate else "live"
+    try:
+        ok, msg = creds.connect(provider, api_key, validate=mode)
+    except RuntimeError as e:       # cryptography missing
+        print(f"  {e}")
+        return 1
+    print(f"  {'✓ connected' if ok else '✗'} {provider}: {msg}")
+    if ok:
+        print("  deterministic chat is unchanged; LLM-assist uses this once P4 lands.")
+    return 0 if ok else 1
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(
         prog="loomground-console",
@@ -99,6 +140,13 @@ def main(argv=None) -> int:
     chat.add_argument("--rvnd-dir", default=None,
                       help="RVND install dir (else $RVND_DIR, workspaces-mcp, ~/rvnd)")
     chat.set_defaults(func=cmd_chat)
+    conn = sub.add_parser("connect", help="connect an LLM provider (BYOK API key)")
+    conn.add_argument("--provider", help="anthropic | openai | ollama")
+    conn.add_argument("--list", action="store_true", help="list connected providers")
+    conn.add_argument("--remove", metavar="PROVIDER", help="disconnect a provider")
+    conn.add_argument("--no-validate", action="store_true",
+                      help="store without a live provider check")
+    conn.set_defaults(func=cmd_connect)
 
     args = p.parse_args(argv)
     fn = getattr(args, "func", None)
