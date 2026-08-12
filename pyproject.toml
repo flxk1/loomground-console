@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright 2026 flxk1
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "loomground-console"
+version = "0.0.1"
+description = "Terminal frontend for RVND — a branded install/wizard flow, a deterministic governance chat REPL grounded in the user's versum, and ASCII dashboards. An MCP client of RVND; it holds no governance engine of its own."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "AGPL-3.0-only" }
+authors = [{ name = "flxk1" }]
+keywords = ["loomground", "rvnd", "governance", "tui", "mcp"]
+dependencies = []          # P1 needs nothing; P2 adds `mcp` for the RVND client
+
+[project.optional-dependencies]
+# P2+: talk to RVND's MCP surface. Kept optional so P1 (home/banner) has no deps.
+mcp = ["mcp>=1.8,<2.0"]
+test = ["pytest>=7.0"]
+
+[project.scripts]
+loomground-console = "loomground_console.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
