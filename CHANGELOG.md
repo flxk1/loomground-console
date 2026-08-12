@@ -15,7 +15,7 @@ over MCP; it holds no governance logic of its own.
   over MCP, grounded in the workspace's versum. Slash-commands, inferred-intent
   echo, `/workspaces` + `/folder` picker. Verified live against a real RVND.
 - **connect** — BYOK provider credentials in a local Fernet-encrypted store
-  (`0600` key file); format + live validation. Ported from Brain's provider registry.
+  (`0600` key file); format + live validation.
 - **LLM phrasing (opt-in)** — with a connected provider, the LLM *phrases* RVND's
   deterministic result; it never routes or decides governance. `/llm` toggles;
   falls back to deterministic on any provider error.

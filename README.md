@@ -1,34 +1,50 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 # loomground-console
 
-The **terminal face of RVND** — a branded install/wizard flow, a deterministic
-governance **chat REPL** grounded in the user's versum, and **ASCII dashboards**.
+The **terminal face of [RVND](https://github.com/flxk1/RVND)** — a branded
+first-run flow, a deterministic governance **chat**, an ASCII **dashboard**, and
+optional bring-your-own-key LLM assist.
 
-It is a **client, not an engine.** All governance logic stays in
-[RVND](https://github.com/flxk1/RVND) (the thin orchestrator); this console
-drives RVND's existing surface over **MCP** — the same seam Claude Code, Codex,
-and the browser console already use. Nothing here re-implements the engine.
+It is a **client, not an engine.** All governance logic lives in RVND; this
+console drives RVND's surface over **MCP** — the same seam other clients use.
+Nothing here re-implements the engine.
 
-- **Deterministic by default** — chat routes through RVND's `governance_chat`
-  (intent router + audited dispatch). **No LLM** unless you `connect` your own
-  provider (BYOK API key / OAuth); then the same chat becomes LLM-assisted.
-- **Grounded in your versum** — each chat turn grounds in the workspace's
-  `.versum` knowledge via RVND's `ask_workspace`.
-- **The browser console** (RVND `app/serve.py`) remains the other face.
+## Install
 
-## Status
-- **P1 — home + command overview** ✅ `loomground-console home`.
-- **P2 — chat REPL** ✅ deterministic, versum-grounded, MCP client of RVND (verified live).
-- **P3 — `connect`** ✅ BYOK provider credentials, encrypted local store.
-- **P4 — LLM opt-in** ✅ option A: LLM *phrases* RVND's deterministic result, never routes it. `/llm` toggle.
-- **P5 — versum-locate wizard step** · **P6 — ASCII `board`** (next).
-
-See the program plan in the Loomground `work/` tree.
-
-## Run
 ```bash
-python -m loomground_console home
+pip install -e '.[mcp,connect]'
 ```
 
+## Use
+
+```bash
+loomground-console home            # commands overview
+loomground-console workspaces      # the workspaces RVND knows
+loomground-console board           # ASCII dashboard (workspaces + security)
+loomground-console connect         # connect an LLM provider (BYOK) — optional
+loomground-console chat            # deterministic governance chat, grounded in a workspace
+```
+
+Point it at your RVND install with `--rvnd-dir <dir>` (or `$RVND_DIR`); it
+defaults to `~/rvnd`.
+
+## How it works
+
+- **Deterministic by default** — chat routes through RVND's governance engine
+  (an audited intent router + dispatch). **No LLM** unless you `connect` your own
+  provider (BYOK). When connected, the model only *phrases* RVND's result — it
+  never routes or decides governance, and it falls back to the deterministic
+  answer on any error.
+- **Grounded** — each chat turn grounds in the workspace's own knowledge.
+- **Credentials stay local** — provider keys are encrypted at rest (see
+  [SECURITY.md](SECURITY.md)).
+- RVND's browser console is the other face.
+
+## Status
+
+Early — `0.0.1`, pre-1.0, the surface may change. Working today: `home`, `chat`,
+`connect`, `board`, `workspaces`. See [CHANGELOG.md](CHANGELOG.md).
+
 ## License
-AGPL-3.0-only (matching RVND, the application it fronts).
+
+AGPL-3.0-only.
