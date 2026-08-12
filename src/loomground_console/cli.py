@@ -61,12 +61,29 @@ def home(out: IO[str] = sys.stdout) -> None:
 
 
 def cmd_chat(args: argparse.Namespace) -> int:
+    import asyncio
+    from . import repl as _repl
+    from .rvnd_client import RvndClient, resolve_rvnd_command
+
     banner()
-    print("   chat lands next (P2): a deterministic REPL that drives RVND's")
-    print("   governance_chat over MCP, grounded in the workspace's versum —")
-    print("   LLM only once you `connect` a provider. Brain's cmd_repl shell,")
-    print("   RVND's real engine behind it.\n")
-    return 0
+    command = resolve_rvnd_command(getattr(args, "rvnd_dir", None))
+    folder = getattr(args, "folder", "") or ""
+
+    async def _main() -> int:
+        try:
+            async with RvndClient(command) as rvnd:
+                return await _repl.run(rvnd.governance_chat, folder=folder)
+        except RuntimeError as e:            # missing 'mcp' dep
+            print(f"  {e}")
+            return 1
+        except Exception as e:               # noqa: BLE001 - server unreachable
+            print(f"  could not reach RVND ({e}).")
+            print(f"  tried: {' '.join(command)}")
+            print("  → point at your install with  --rvnd-dir <dir>  or  RVND_DIR=<dir>,")
+            print("    and install the client deps:  pip install 'loomground-console[mcp]'")
+            return 1
+
+    return asyncio.run(_main())
 
 
 def main(argv=None) -> int:
@@ -77,8 +94,11 @@ def main(argv=None) -> int:
                    version=f"loomground-console {__version__}")
     sub = p.add_subparsers(dest="cmd")
     sub.add_parser("home", help="branded home + command overview")
-    sub.add_parser("chat", help="deterministic governance chat REPL (P2)"
-                   ).set_defaults(func=cmd_chat)
+    chat = sub.add_parser("chat", help="deterministic governance chat REPL")
+    chat.add_argument("--folder", default="", help="workspace to ground in (its .versum)")
+    chat.add_argument("--rvnd-dir", default=None,
+                      help="RVND install dir (else $RVND_DIR, workspaces-mcp, ~/rvnd)")
+    chat.set_defaults(func=cmd_chat)
 
     args = p.parse_args(argv)
     fn = getattr(args, "func", None)
