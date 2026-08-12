@@ -31,6 +31,15 @@ def test_render_turn_echoes_intent_why_and_audit():
     assert "audit: a1" in out
 
 
+def test_render_turn_map_shows_compact_counts_not_raw_dict():
+    # RVND's map result: summary is a DICT — must render as a count line, not a dump
+    out = repl.render_turn({"echo": "inferred: ask", "kind": "map",
+                            "result": {"summary": {"total": 0, "empty": 0,
+                                                   "instruments": []}}})
+    assert "map: total 0, empty 0" in out
+    assert "{" not in out                       # no raw dict
+
+
 def test_render_turn_surfaces_error():
     out = repl.render_turn({"echo": "inferred: ingest",
                             "result": {"error": "no policy text"}})

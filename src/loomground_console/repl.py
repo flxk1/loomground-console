@@ -46,15 +46,25 @@ def render_turn(result: dict) -> str:
         out.append(f"  · {echo}" + (f"  ({why})" if why else ""))  # correctable route
     inner = result.get("result")
     if isinstance(inner, dict):
+        text = next((v for v in (inner.get("answer"), inner.get("message"),
+                                 inner.get("echo")) if isinstance(v, str) and v), None)
+        kind = result.get("kind", "result")
         if inner.get("error"):
             out.append(f"  ⚠ {inner['error']}")
+        elif text:
+            out.append(f"  {text}")
         else:
-            summary = (inner.get("answer") or inner.get("summary")
-                       or inner.get("echo") or inner.get("message"))
-            if summary:
-                out.append(f"  {summary}")
-            elif result.get("kind"):
-                out.append(f"  ({result['kind']} ok)")
+            # Structured result (e.g. a governance map): a compact count line,
+            # never a raw dict dump.
+            summ = inner.get("summary")
+            if isinstance(summ, dict):
+                pairs = ", ".join(f"{k} {v}" for k, v in summ.items()
+                                  if isinstance(v, (int, float)))
+                out.append(f"  {kind}: {pairs}" if pairs else f"  ({kind} ok)")
+            elif isinstance(summ, str) and summ:
+                out.append(f"  {summ}")
+            else:
+                out.append(f"  ({kind} ok)")
         audit = inner.get("audit_id") or inner.get("audit")
         if audit:
             out.append(f"  audit: {audit}")
