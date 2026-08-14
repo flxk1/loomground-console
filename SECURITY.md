@@ -14,9 +14,9 @@ will acknowledge and coordinate a fix and disclosure.
 
 ## Scope notes
 
-- loomground-console is a **client**: it drives host's governance surface over MCP
+- loomground-console is a **client**: it drives RVND's governance surface over MCP
   and holds no governance engine. Governance-engine issues belong to
-  [host](https://github.com/flxk1/host).
+  [RVND](https://github.com/flxk1/RVND).
 - Provider API keys are stored **locally**, encrypted at rest with Fernet under a
   `0600` key file in `~/.config/loomground-console/`. This protects against casual
   reading and accidental commits, **not** against an attacker who already has your

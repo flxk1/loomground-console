@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright 2026 flxk1
-"""ASCII board — render host state in the terminal.
+"""ASCII board — render RVND state in the terminal.
 
 Pure renderers (no I/O, no color) so they unit-test without a live server; the
 fetch is the MCP client's job. Inspired by Brain's framed panels. Shapes are the
-real ones host returns:
+real ones RVND returns:
   workspaces        {ok, default, workspaces:[{path,label,added_at,exists}]}
   security_dashboard {version, summary:{total,admitted,held,rejected,released,
                       holds_pending,sources,top_rules}, limits, ...}

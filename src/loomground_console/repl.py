@@ -2,13 +2,13 @@
 # Copyright 2026 flxk1
 """The deterministic governance chat REPL.
 
-Drives host's `governance_chat` over MCP, grounded in the workspace's versum.
+Drives RVND's `governance_chat` over MCP, grounded in the workspace's versum.
 **No LLM** — that arrives with `connect` (a later phase). Shell shaped after
 Brain's `cmd_repl`: readline history, slash-commands, an inferred-intent echo
 (so a wrong route is visible + correctable), and the result + audit id.
 
 Turn/formatting logic is kept pure (`render_turn`, `parse_command`) so it is
-unit-tested without a live host; only `run()` needs the server.
+unit-tested without a live RVND; only `run()` needs the server.
 """
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from typing import Any, Callable, Optional
 
 SLASH = {
     "/help":       "show commands",
-    "/workspaces": "list workspaces host knows (also /ws)",
+    "/workspaces": "list workspaces RVND knows (also /ws)",
     "/folder":     "<number|path>  set the workspace this chat grounds in (its .versum)",
     "/llm":        "toggle LLM phrasing on/off (needs a connected provider)",
     "/clear":      "clear the screen",
@@ -86,21 +86,21 @@ async def run(chat: Callable[[str, str], "Any"], *,
               list_ws: Optional[Callable[[], "Any"]] = None) -> int:
     """Run the REPL. `chat(text, folder)` is an async callable returning the
     governance_chat dict (injected so tests pass a fake). `phrase(question,
-    result)` optionally turns host's deterministic result into prose (P4, option
+    result)` optionally turns RVND's deterministic result into prose (P4, option
     A — never routes governance); `llm_on` is its initial state, toggled by /llm.
     `read_line(prompt)` defaults to input()."""
     reader = read_line or (lambda prompt: input(prompt))
     loop = asyncio.get_event_loop()
     last_ws: list[str] = []                    # paths from the last /workspaces list
     mode = ("LLM-assisted" if (llm_on and phrase) else "deterministic")
-    out(f"  host chat — {mode}, grounded in your versum. /help, /quit.")
+    out(f"  RVND chat — {mode}, grounded in your versum. /help, /quit.")
     if phrase is None:
         out("  (no provider connected — `connect` one for optional LLM phrasing)")
     out(f"  workspace: {folder or '(none — set with /folder <path>)'}")
     while True:
         try:
             line = await asyncio.get_event_loop().run_in_executor(
-                None, reader, f"host[{_short(folder)}]> ")
+                None, reader, f"rvnd[{_short(folder)}]> ")
         except (EOFError, KeyboardInterrupt):
             out("\n  bye.")
             return 0
@@ -149,7 +149,7 @@ async def run(chat: Callable[[str, str], "Any"], *,
             out(f"  ⚠ {e}"); continue
 
         if llm_on and phrase is not None:
-            # Phrase host's DETERMINISTIC result. On any provider error, fall
+            # Phrase RVND's DETERMINISTIC result. On any provider error, fall
             # back to the deterministic rendering — the engine's word stands.
             try:
                 prose = await loop.run_in_executor(None, phrase, rest, result)
