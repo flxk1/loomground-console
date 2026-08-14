@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright 2026 flxk1
-"""ASCII board renderers — pure, against the real RVND shapes. No server."""
+"""ASCII board renderers — pure, against the real host shapes. No server."""
 from __future__ import annotations
 
 from loomground_console import board

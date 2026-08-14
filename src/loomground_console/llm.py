@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright 2026 flxk1
-"""Client-side LLM assist (P4, option A) — phrase RVND's DETERMINISTIC output.
+"""Client-side LLM assist (P4, option A) — phrase host's DETERMINISTIC output.
 
-The LLM never routes, decides, or invents governance. RVND has already made
+The LLM never routes, decides, or invents governance. host has already made
 every decision deterministically; the provider is handed the user's question
-plus RVND's result and asked only to phrase it. With no connected provider the
+plus host's result and asked only to phrase it. With no connected provider the
 chat stays pure-deterministic. BYOK key comes from `creds`; the provider is
 called directly over httpx (no SDK), so nothing leaves the machine except the
 call to the provider the user chose.
@@ -17,11 +17,11 @@ from typing import Optional
 from . import creds
 
 _SYSTEM = (
-    "You are the presentation layer for RVND, a local-first governance engine. "
-    "RVND has ALREADY made every governance decision deterministically. Your ONLY "
-    "job is to phrase RVND's result for the user in clear, brief prose. You must "
+    "You are the presentation layer for host, a local-first governance engine. "
+    "host has ALREADY made every governance decision deterministically. Your ONLY "
+    "job is to phrase host's result for the user in clear, brief prose. You must "
     "NOT invent, add, or change any governance decision, verdict, permission, or "
-    "fact, and you must not claim authority RVND did not grant. If RVND returned "
+    "fact, and you must not claim authority host did not grant. If host returned "
     "little or an error, say so plainly."
 )
 
@@ -46,15 +46,15 @@ def _model_for(provider: str) -> str:
 
 
 def _prompt(question: str, deterministic: dict) -> str:
-    return (f"User asked RVND: {question!r}\n\n"
-            f"RVND's deterministic result (authoritative — do not alter or extend):\n"
+    return (f"User asked host: {question!r}\n\n"
+            f"host's deterministic result (authoritative — do not alter or extend):\n"
             f"{json.dumps(deterministic, ensure_ascii=False, indent=2)[:4000]}\n\n"
             f"Phrase this for the user in a few sentences. Add no governance content.")
 
 
 def phrase(question: str, deterministic: dict, *, provider: str,
            timeout: float = 30.0) -> str:
-    """Phrase RVND's result via the connected provider. Raises on transport/auth
+    """Phrase host's result via the connected provider. Raises on transport/auth
     error so the caller can fall back to the deterministic rendering."""
     import httpx
 

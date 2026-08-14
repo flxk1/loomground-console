@@ -20,7 +20,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
-# Trimmed from Brain's registry — the ones a local RVND user is likely to BYO.
+# Trimmed from Brain's registry — the ones a local host user is likely to BYO.
 PROVIDERS: dict[str, dict] = {
     "anthropic": {
         "name": "Anthropic", "key_prefix": "sk-ant-",

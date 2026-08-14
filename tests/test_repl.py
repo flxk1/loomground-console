@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright 2026 flxk1
-"""Pure REPL + client-helper logic — no live RVND needed. The MCP round-trip
-itself is verified separately against a real RVND install."""
+"""Pure REPL + client-helper logic — no live host needed. The MCP round-trip
+itself is verified separately against a real host install."""
 from __future__ import annotations
 
 import asyncio
@@ -32,7 +32,7 @@ def test_render_turn_echoes_intent_why_and_audit():
 
 
 def test_render_turn_map_shows_compact_counts_not_raw_dict():
-    # RVND's map result: summary is a DICT — must render as a count line, not a dump
+    # host's map result: summary is a DICT — must render as a count line, not a dump
     out = repl.render_turn({"echo": "inferred: ask", "kind": "map",
                             "result": {"summary": {"total": 0, "empty": 0,
                                                    "instruments": []}}})
